@@ -54,7 +54,7 @@ jobs:
         env:
           GOOSE_DRIVER: postgres
           GOOSE_DBSTRING: "host=localhost port=5432 user=developer password=supersecretpassword dbname=tembusptn sslmode=disable"
-        run: goose -dir migrations up
+        run: goose -dir services/user-service/migrations up
 
       - name: Run tests
         run: go test -v ./...
