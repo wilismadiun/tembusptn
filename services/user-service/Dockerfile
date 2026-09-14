@@ -15,6 +15,7 @@ FROM alpine:latest
 WORKDIR /app
 
 COPY --from=builder /app/tembusptn-user-service .
+COPY --from=builder /app/migrations ./migrations
 
 EXPOSE 3000
 

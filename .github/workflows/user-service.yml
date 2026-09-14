@@ -74,7 +74,7 @@ jobs:
       
       - name: Build image
         working-directory: services/user-service
-        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/tembusptn:v1.0 .
+        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/tembusptn-user-service:v1.0 .
 
       - name: Push repository docker
         run: docker push ${{ secrets.DOCKER_USERNAME }}/tembusptn-user-service:v1.0 
