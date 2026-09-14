@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"errors"
-	"log"
 
 	"github.com/wilismadiun/tembusptn/services/user-service/src/Applications/generator"
 	"github.com/wilismadiun/tembusptn/services/user-service/src/Applications/security"
@@ -27,7 +26,7 @@ func (h *Register) Execute(user entities.User) (entities.RegisteredUser, error) 
 		return entities.RegisteredUser{}, err
 	}
 
-	err = h.Repo.FindUserByEmail(user)
+	err = h.Repo.FindUserByEmail(user.Email)
 	if err == nil {
 		return entities.RegisteredUser{}, errors.New("Email is already in use")
 	}
@@ -47,9 +46,6 @@ func (h *Register) Execute(user entities.User) (entities.RegisteredUser, error) 
 	if err != nil {
 		return entities.RegisteredUser{}, err
 	}
-
-	log.Println("====================================== ini adalah user")
-	log.Println(user)
 
 	return entities.RegisteredUser{
 		ID:   user.ID,

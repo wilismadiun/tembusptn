@@ -50,7 +50,7 @@ func Test_register(t *testing.T) {
 
 	Router(router, database.DB)
 
-	t.Run("should response 400 when username available", func(t *testing.T) {
+	t.Run("should response 400 when email available", func(t *testing.T) {
 		databaseHelper()
 
 		body := []byte(`{
