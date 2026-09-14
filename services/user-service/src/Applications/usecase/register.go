@@ -26,7 +26,7 @@ func (h *Register) Execute(user entities.User) (entities.RegisteredUser, error) 
 		return entities.RegisteredUser{}, err
 	}
 
-	err = h.Repo.FindUserByEmail(user.Email)
+	_, err = h.Repo.FindUserByEmail(user.Email)
 	if err == nil {
 		return entities.RegisteredUser{}, errors.New("Email is already in use")
 	}

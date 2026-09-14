@@ -51,22 +51,22 @@ func Test_register(t *testing.T) {
 			Generator().
 			Return("user-123")
 
-		mockRepo.
-			EXPECT().
-			FindUserByEmail(gomock.Any()).
-			Return(expectedErr)
-
-		register := Register{
-			Repo:         mockRepo,
-			Generator:    mockGenerator,
-			HashPassword: mockHasher,
-		}
-
 		user := entities.User{
 			Email:    "test@example.com",
 			Name:     "John",
 			Phone:    "08123456789",
 			Password: "password123",
+		}
+
+		mockRepo.
+			EXPECT().
+			FindUserByEmail(gomock.Any()).
+			Return(user, expectedErr)
+
+		register := Register{
+			Repo:         mockRepo,
+			Generator:    mockGenerator,
+			HashPassword: mockHasher,
 		}
 
 		result, err := register.Execute(user)
@@ -92,7 +92,7 @@ func Test_register(t *testing.T) {
 		mockRepo.
 			EXPECT().
 			FindUserByEmail(gomock.Any()).
-			Return(ErrNotFound)
+			Return(entities.User{}, ErrNotFound)
 
 		mockHasher.
 			EXPECT().
@@ -135,7 +135,7 @@ func Test_register(t *testing.T) {
 		mockRepo.
 			EXPECT().
 			FindUserByEmail(gomock.Any()).
-			Return(ErrNotFound)
+			Return(entities.User{}, ErrNotFound)
 
 		mockHasher.
 			EXPECT().
@@ -181,7 +181,7 @@ func Test_register(t *testing.T) {
 		mockRepo.
 			EXPECT().
 			FindUserByEmail(gomock.Any()).
-			Return(ErrNotFound)
+			Return(entities.User{}, ErrNotFound)
 
 		mockHasher.
 			EXPECT().

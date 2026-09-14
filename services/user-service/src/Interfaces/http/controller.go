@@ -10,6 +10,7 @@ import (
 
 type Handler struct {
 	RegisterHandler *usecase.Register
+	Loginhandler    *usecase.Login
 }
 
 func (h *Handler) Register(c *gin.Context) {
@@ -34,5 +35,30 @@ func (h *Handler) Register(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Berhasil menambahkan user",
 		"data":    userSuccess,
+	})
+}
+
+func (h *Handler) Login(c *gin.Context) {
+	var login entities.Login
+
+	err := c.ShouldBindBodyWithJSON(&login)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+
+	token, err := h.Loginhandler.Execute(login)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Berhasil menambahkan user",
+		"data":    token,
 	})
 }

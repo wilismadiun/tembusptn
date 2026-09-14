@@ -201,3 +201,208 @@ func Test_register(t *testing.T) {
 
 	database.DB.Exec("DELETE FROM users;")
 }
+
+func Test_login(t *testing.T) {
+	router := gin.New()
+
+	Router(router, database.DB)
+
+	t.Run("should response 400 when email is empty", func(t *testing.T) {
+		body := []byte(`{
+			"email": "",
+			"password": "12345678"
+		}`)
+
+		req := httptest.NewRequest(
+			http.MethodPost,
+			"/login",
+			bytes.NewBuffer(body),
+		)
+
+		req.Header.Set(
+			"Content-Type",
+			"application/json",
+		)
+
+		w := httptest.NewRecorder()
+
+		router.ServeHTTP(w, req)
+
+		assert.Equal(
+			t,
+			http.StatusBadRequest,
+			w.Code,
+		)
+	})
+
+	t.Run("should response 400 when email is not registered", func(t *testing.T) {
+		body := []byte(`{
+			"email": "notregistered@gmail.com",
+			"password": "12345678"
+		}`)
+
+		req := httptest.NewRequest(
+			http.MethodPost,
+			"/login",
+			bytes.NewBuffer(body),
+		)
+
+		req.Header.Set(
+			"Content-Type",
+			"application/json",
+		)
+
+		w := httptest.NewRecorder()
+
+		router.ServeHTTP(w, req)
+
+		assert.Equal(
+			t,
+			http.StatusBadRequest,
+			w.Code,
+		)
+
+		database.DB.Exec("DELETE FROM users")
+	})
+
+	t.Run("should response 400 when password is incorrect", func(t *testing.T) {
+		databaseHelper()
+
+		// Register user first
+		registerBody := []byte(`{
+			"email": "login@gmail.com",
+			"name": "Jaya",
+			"phone": "081234567890",
+			"password": "12345678"
+		}`)
+
+		registerReq := httptest.NewRequest(
+			http.MethodPost,
+			"/register",
+			bytes.NewBuffer(registerBody),
+		)
+
+		registerReq.Header.Set(
+			"Content-Type",
+			"application/json",
+		)
+
+		registerW := httptest.NewRecorder()
+
+		router.ServeHTTP(registerW, registerReq)
+
+		assert.Equal(
+			t,
+			http.StatusCreated,
+			registerW.Code,
+		)
+
+		// Login with wrong password
+		loginBody := []byte(`{
+			"email": "login@gmail.com",
+			"password": "wrongpassword"
+		}`)
+
+		loginReq := httptest.NewRequest(
+			http.MethodPost,
+			"/login",
+			bytes.NewBuffer(loginBody),
+		)
+
+		loginReq.Header.Set(
+			"Content-Type",
+			"application/json",
+		)
+
+		loginW := httptest.NewRecorder()
+
+		router.ServeHTTP(loginW, loginReq)
+
+		assert.Equal(
+			t,
+			http.StatusBadRequest,
+			loginW.Code,
+		)
+
+		database.DB.Exec("DELETE FROM users")
+	})
+
+	t.Run("Login successful", func(t *testing.T) {
+		databaseHelper()
+
+		// Register user first
+		registerBody := []byte(`{
+			"email": "success@gmail.com",
+			"name": "Jaya",
+			"phone": "081234567890",
+			"password": "12345678"
+		}`)
+
+		registerReq := httptest.NewRequest(
+			http.MethodPost,
+			"/register",
+			bytes.NewBuffer(registerBody),
+		)
+
+		registerReq.Header.Set(
+			"Content-Type",
+			"application/json",
+		)
+
+		registerW := httptest.NewRecorder()
+
+		router.ServeHTTP(registerW, registerReq)
+
+		assert.Equal(
+			t,
+			http.StatusCreated,
+			registerW.Code,
+		)
+
+		// Login
+		loginBody := []byte(`{
+			"email": "success@gmail.com",
+			"password": "12345678"
+		}`)
+
+		loginReq := httptest.NewRequest(
+			http.MethodPost,
+			"/login",
+			bytes.NewBuffer(loginBody),
+		)
+
+		loginReq.Header.Set(
+			"Content-Type",
+			"application/json",
+		)
+
+		loginW := httptest.NewRecorder()
+
+		router.ServeHTTP(loginW, loginReq)
+
+		assert.Equal(
+			t,
+			http.StatusOK,
+			loginW.Code,
+		)
+
+		// Check response
+		var response map[string]interface{}
+
+		err := json.Unmarshal(
+			loginW.Body.Bytes(),
+			&response,
+		)
+
+		assert.NoError(
+			t,
+			err,
+		)
+
+		assert.NotEmpty(
+			t,
+			response,
+		)
+		database.DB.Exec("DELETE FROM users;")
+	})
+}

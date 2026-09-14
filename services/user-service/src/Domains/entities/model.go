@@ -12,3 +12,8 @@ type RegisteredUser struct {
 	ID   string
 	Name string
 }
+
+type Login struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}

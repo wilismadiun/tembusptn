@@ -4,5 +4,5 @@ import "github.com/wilismadiun/tembusptn/services/user-service/src/Domains/entit
 
 type UserRepository interface {
 	UserRegister(user *entities.User) error
-	FindUserByEmail(email string) error
+	FindUserByEmail(email string) (entities.User, error)
 }

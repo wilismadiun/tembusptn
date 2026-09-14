@@ -37,7 +37,7 @@ func TestFindUserByEmail_NotFound(T *testing.T) {
 		Email: "email_yang_pasti_tidak_ada@test.com",
 	}
 
-	err := repo.FindUserByEmail(nonExistentUser.Email)
+	_, err := repo.FindUserByEmail(nonExistentUser.Email)
 
 	// Validasi bahwa error yang dikembalikan adalah usecase.ErrNotFound
 	assert.Error(T, err)
@@ -59,7 +59,7 @@ func TestFindUserByEmail_Found(t *testing.T) {
 		Email: "test_found@test.com",
 	}
 
-	err = repo.FindUserByEmail(searchUser.Email)
+	_, err = repo.FindUserByEmail(searchUser.Email)
 
 	assert.NoError(t, err)
 

@@ -41,11 +41,12 @@ func (m *MockUserRepository) EXPECT() *MockUserRepositoryMockRecorder {
 }
 
 // FindUserByEmail mocks base method.
-func (m *MockUserRepository) FindUserByEmail(email string) error {
+func (m *MockUserRepository) FindUserByEmail(email string) (entities.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FindUserByEmail", email)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(entities.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // FindUserByEmail indicates an expected call of FindUserByEmail.

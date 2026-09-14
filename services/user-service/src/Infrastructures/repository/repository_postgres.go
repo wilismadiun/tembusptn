@@ -10,19 +10,19 @@ type UserRepository struct {
 	DB *gorm.DB
 }
 
-func (h *UserRepository) FindUserByEmail(email string) error {
+func (h *UserRepository) FindUserByEmail(email string) (entities.User, error) {
 	var user entities.User
 
 	err := h.DB.Where("email = ?", email).First(&user).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return usecase.ErrNotFound
+			return entities.User{}, usecase.ErrNotFound
 		} else {
-			return err
+			return entities.User{}, err
 		}
 	}
 
-	return nil
+	return user, nil
 }
 
 func (h *UserRepository) UserRegister(user *entities.User) error {
