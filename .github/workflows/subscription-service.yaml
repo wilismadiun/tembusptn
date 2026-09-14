@@ -1,0 +1,9 @@
+# name: Subscription Service
+
+# on:
+#   push:
+#     branches:
+#       - main
+#     paths:
+#       - "services/subscription-service/**"
+#       - ".github/workflows/subscription-service.yaml"
