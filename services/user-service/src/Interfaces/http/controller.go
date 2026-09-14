@@ -1,7 +1,6 @@
 package http
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -14,7 +13,6 @@ type Handler struct {
 }
 
 func (h *Handler) Register(c *gin.Context) {
-	fmt.Println("controller 1")
 	var user entities.User
 
 	err := c.ShouldBindBodyWithJSON(&user)
@@ -30,8 +28,6 @@ func (h *Handler) Register(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"message": err.Error(),
 		})
-		fmt.Println("controller 2")
-		fmt.Println(err)
 		return
 	}
 
