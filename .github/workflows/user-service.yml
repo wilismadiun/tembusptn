@@ -57,10 +57,12 @@ jobs:
         run: goose -dir services/user-service/migrations up
 
       - name: Run tests
+        working-directory: services/user-service
         run: go test -v ./...
   
   build:
     needs: test
+    working-directory: services/user-service
     runs-on: ubuntu-latest
 
     steps:
