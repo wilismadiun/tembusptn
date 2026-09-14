@@ -1,0 +1,34 @@
+package repository
+
+import (
+	"github.com/wilismadiun/tembusptn/services/user-service/src/Applications/usecase"
+	"github.com/wilismadiun/tembusptn/services/user-service/src/Domains/entities"
+	"gorm.io/gorm"
+)
+
+type UserRepository struct {
+	DB *gorm.DB
+}
+
+func (h *UserRepository) FindUserByEmail(user entities.User) error {
+
+	err := h.DB.Where("email = ?", user.Email).First(&user).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return usecase.ErrNotFound
+		} else {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (h *UserRepository) UserRegister(user *entities.User) error {
+	err := h.DB.Create(user).Error
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
