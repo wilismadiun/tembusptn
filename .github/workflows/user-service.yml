@@ -5,8 +5,8 @@ on:
     branches:
       - main
     paths:
-      - "services/user-service**"
-      - ".github/workflows/course-service.yml"
+      - "services/user-service/**"
+      - ".github/workflows/user-service.yml"
 
 jobs:
   test:
@@ -22,7 +22,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd="pg_isready -U developers -d notesapp_test"
+          --health-cmd="pg_isready -U developer -d tembusptn"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
