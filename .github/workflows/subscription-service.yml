@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - "services/subscription-service/**"
-      - ".github/workflows/subscriptions-service.yml"
+      - ".github/workflows/subscription-service.yml"
 
 jobs:
   test:
@@ -40,7 +40,7 @@ jobs:
         run: go install github.com/pressly/goose/v3/cmd/goose@latest
 
       - name: Create .env
-        working-directory: services/subscriptions-service
+        working-directory: services/subscription-service
         run: |
           cat <<EOF > .env
           DB_HOST=localhost
@@ -55,10 +55,10 @@ jobs:
         env:
           GOOSE_DRIVER: postgres
           GOOSE_DBSTRING: "host=localhost port=5432 user=developer password=supersecretpassword dbname=tembusptn sslmode=disable"
-        run: goose -dir services/subscriptions-service/migrations up
+        run: goose -dir services/subscription-service/migrations up
 
       - name: Run tests
-        working-directory: services/subscriptions-service
+        working-directory: services/subscription-service
         run: go test -v ./...
   
   build:
@@ -73,8 +73,8 @@ jobs:
         run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
       
       - name: Build image
-        working-directory: services/subscriptions-service
-        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/tembusptn-subscriptions-service:v1.0 .
+        working-directory: services/subscription-service
+        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/tembusptn-subscription-service:v1.0 .
 
       - name: Push repository docker
-        run: docker push ${{ secrets.DOCKER_USERNAME }}/tembusptn-subscriptions-service:v1.0 
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/tembusptn-subscription-service:v1.0 
