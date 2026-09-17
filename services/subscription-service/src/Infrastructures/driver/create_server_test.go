@@ -23,6 +23,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Println("Peringatan: Gagal memuat .env dari root, mencoba path alternatif...")
 	}
+
 	database.ConnectDatabase()
 
 	gin.SetMode(gin.TestMode)
@@ -33,8 +34,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestAddSubscription(t *testing.T) {
-
-	t.Run("should return 401 when middleware is empty", func(t *testing.T) {
+	t.Run("should return 401 when authorization header is empty", func(t *testing.T) {
 		router := gin.New()
 		Router(router, database.DB)
 
@@ -58,13 +58,43 @@ func TestAddSubscription(t *testing.T) {
 		assert.Equal(t, http.StatusUnauthorized, recorder.Code)
 	})
 
+	t.Run("should return 401 when role is not admin", func(t *testing.T) {
+		router := gin.New()
+		Router(router, database.DB)
+
+		tokenGenerator := security.AuthenticationTokenJWT{}
+
+		token, err := tokenGenerator.GenerateToken("user-123", "student")
+		require.NoError(t, err)
+
+		body := []byte(`{
+			"name": "Gold",
+			"price": 50000
+		}`)
+
+		req := httptest.NewRequest(
+			http.MethodPost,
+			"/api/subscriptions",
+			bytes.NewBuffer(body),
+		)
+
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+
+		recorder := httptest.NewRecorder()
+
+		router.ServeHTTP(recorder, req)
+
+		assert.Equal(t, http.StatusUnauthorized, recorder.Code)
+	})
+
 	t.Run("should return 400 when name is empty", func(t *testing.T) {
 		router := gin.New()
 		Router(router, database.DB)
 
 		tokenGenerator := security.AuthenticationTokenJWT{}
 
-		token, err := tokenGenerator.GenerateToken("user-123")
+		token, err := tokenGenerator.GenerateToken("user-123", "admin")
 		require.NoError(t, err)
 
 		body := []byte(`{
@@ -94,7 +124,7 @@ func TestAddSubscription(t *testing.T) {
 
 		tokenGenerator := security.AuthenticationTokenJWT{}
 
-		token, err := tokenGenerator.GenerateToken("user-123")
+		token, err := tokenGenerator.GenerateToken("user-123", "admin")
 		require.NoError(t, err)
 
 		body := []byte(`{
@@ -122,7 +152,6 @@ func TestAddSubscription(t *testing.T) {
 		router := gin.New()
 		Router(router, database.DB)
 
-		// Data awal
 		dummySubscription := entities.Subscriptions{
 			ID:    "subscription-existing-123",
 			Name:  "Gold Existing",
@@ -134,7 +163,7 @@ func TestAddSubscription(t *testing.T) {
 
 		tokenGenerator := security.AuthenticationTokenJWT{}
 
-		token, err := tokenGenerator.GenerateToken("user-123")
+		token, err := tokenGenerator.GenerateToken("user-123", "admin")
 		require.NoError(t, err)
 
 		body := []byte(`{
@@ -157,7 +186,6 @@ func TestAddSubscription(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, recorder.Code)
 
-		// Cleanup
 		database.DB.
 			Where("id = ?", dummySubscription.ID).
 			Delete(&entities.Subscriptions{})
@@ -169,7 +197,7 @@ func TestAddSubscription(t *testing.T) {
 
 		tokenGenerator := security.AuthenticationTokenJWT{}
 
-		token, err := tokenGenerator.GenerateToken("user-123")
+		token, err := tokenGenerator.GenerateToken("user-123", "admin")
 		require.NoError(t, err)
 
 		body := []byte(`{
@@ -192,7 +220,6 @@ func TestAddSubscription(t *testing.T) {
 
 		assert.Equal(t, http.StatusCreated, recorder.Code)
 
-		// Pastikan benar-benar masuk PostgreSQL
 		var result entities.Subscriptions
 
 		err = database.DB.
@@ -204,7 +231,6 @@ func TestAddSubscription(t *testing.T) {
 		assert.Equal(t, "Diamond Integration Test", result.Name)
 		assert.Equal(t, int64(150000), result.Price)
 
-		// Cleanup
 		database.DB.
 			Where("name = ?", "Diamond Integration Test").
 			Delete(&entities.Subscriptions{})

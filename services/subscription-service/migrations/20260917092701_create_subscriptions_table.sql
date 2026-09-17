@@ -1,6 +1,6 @@
 -- +goose Up
 CREATE TABLE subscriptions (
-    id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+    id VARCHAR PRIMARY KEY,
     name VARCHAR NOT NULL,
     price BIGINT NOT NULL
 );

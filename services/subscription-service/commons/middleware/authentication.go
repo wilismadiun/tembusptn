@@ -8,10 +8,15 @@ import (
 )
 
 type TokenValidator interface {
-	ValidateToken(token string) (string, error)
+	ValidateToken(token string) (string, string, error)
 }
 
-func Authentication(tokenValidator TokenValidator) gin.HandlerFunc {
+type userContext struct {
+	UserId string
+	Role   string
+}
+
+func AuthenticationAdmin(tokenValidator TokenValidator) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
 		authorization := c.GetHeader("Authorization")
@@ -20,7 +25,7 @@ func Authentication(tokenValidator TokenValidator) gin.HandlerFunc {
 			c.AbortWithStatusJSON(
 				http.StatusUnauthorized,
 				gin.H{
-					"message": "authorization header tidak ditemukan",
+					"message": "Authorization header is missing",
 				},
 			)
 			return
@@ -32,7 +37,7 @@ func Authentication(tokenValidator TokenValidator) gin.HandlerFunc {
 			c.AbortWithStatusJSON(
 				http.StatusUnauthorized,
 				gin.H{
-					"message": "format authorization tidak valid",
+					"message": "Invalid authorization format",
 				},
 			)
 			return
@@ -40,18 +45,31 @@ func Authentication(tokenValidator TokenValidator) gin.HandlerFunc {
 
 		token := parts[1]
 
-		userID, err := tokenValidator.ValidateToken(token)
+		userID, role, err := tokenValidator.ValidateToken(token)
 		if err != nil {
 			c.AbortWithStatusJSON(
 				http.StatusUnauthorized,
 				gin.H{
-					"message": "token tidak valid",
+					"message": "Invalid or expired token",
 				},
 			)
 			return
 		}
 
-		c.Set("user_id", userID)
+		if role != "admin" {
+			c.AbortWithStatusJSON(
+				http.StatusUnauthorized,
+				gin.H{
+					"message": "Access denied: admin role required",
+				},
+			)
+			return
+		}
+
+		c.Set("user_identify", userContext{
+			UserId: userID,
+			Role:   role,
+		})
 
 		c.Next()
 	}

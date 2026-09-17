@@ -12,14 +12,22 @@ var secretKey = os.Getenv("JWT_SECRET")
 
 type AuthenticationTokenJWT struct{}
 
-func (h *AuthenticationTokenJWT) GenerateToken(id string) (string, error) {
+type CustomClaims struct {
+	Role string `json:"role"`
+	jwt.RegisteredClaims
+}
+
+func (h *AuthenticationTokenJWT) GenerateToken(id, role string) (string, error) {
 	now := time.Now()
 
-	claims := jwt.RegisteredClaims{
-		// ExpiresAt: jwt.NewNumericDate(now.Add(15 * time.Hour)),
-		IssuedAt:  jwt.NewNumericDate(now),
-		NotBefore: jwt.NewNumericDate(now),
-		Subject:   id,
+	claims := CustomClaims{
+		Role: role,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(now.Add(15 * time.Hour)), // Jangan lupa aktifkan jika perlu
+			IssuedAt:  jwt.NewNumericDate(now),
+			NotBefore: jwt.NewNumericDate(now),
+			Subject:   id, // 'id' biasanya diletakkan di Subject (sub)
+		},
 	}
 
 	token := jwt.NewWithClaims(
@@ -35,9 +43,9 @@ func (h *AuthenticationTokenJWT) GenerateToken(id string) (string, error) {
 	return signedToken, nil
 }
 
-func (h *AuthenticationTokenJWT) ValidateToken(tokenString string) (string, error) {
+func (h *AuthenticationTokenJWT) ValidateToken(tokenString string) (string, string, error) {
 
-	claims := &jwt.RegisteredClaims{}
+	claims := &CustomClaims{}
 
 	token, err := jwt.ParseWithClaims(
 		tokenString,
@@ -54,14 +62,14 @@ func (h *AuthenticationTokenJWT) ValidateToken(tokenString string) (string, erro
 
 	if err != nil {
 		if errors.Is(err, jwt.ErrTokenExpired) {
-			return "", errors.New("Token sudah tidak berlaku")
+			return "", "", errors.New("Token sudah tidak berlaku")
 		}
-		return "", err
+		return "", "", err
 	}
 
 	if !token.Valid {
-		return "", jwt.ErrTokenInvalidClaims
+		return "", "", jwt.ErrTokenInvalidClaims
 	}
 
-	return claims.Subject, nil
+	return claims.Subject, claims.Role, nil
 }

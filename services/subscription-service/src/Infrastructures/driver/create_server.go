@@ -15,7 +15,7 @@ func Router(router *gin.Engine, db *gorm.DB) {
 
 	// handler
 	handler := infrastructures.Container(db)
-	authMiddleware := middleware.Authentication(&authValidator)
+	authMiddleware := middleware.AuthenticationAdmin(&authValidator)
 
 	api := router.Group("/api")
 	api.Use(authMiddleware)
