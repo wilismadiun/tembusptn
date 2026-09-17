@@ -10,15 +10,19 @@ import (
 )
 
 func Test_Login(t *testing.T) {
+
 	t.Run("should return error when email is empty", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
-		mockRepo := mocks.NewMockUserRepository(ctrl)
+		mockUserRepo := mocks.NewMockUserRepository(ctrl)
+		mockRoleRepo := mocks.NewMockRoleRepository(ctrl)
 		mockToken := mocks.NewMockAuthToken(ctrl)
 		mockHasher := mocks.NewMockPasswordHasher(ctrl)
 
 		login := Login{
-			UserRepo: mockRepo,
+			UserRepo: mockUserRepo,
+			RoleRepo: mockRoleRepo,
 			Token:    mockToken,
 			Hasher:   mockHasher,
 		}
@@ -36,18 +40,21 @@ func Test_Login(t *testing.T) {
 
 	t.Run("should return error when email is not registered", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
-		mockRepo := mocks.NewMockUserRepository(ctrl)
+		mockUserRepo := mocks.NewMockUserRepository(ctrl)
+		mockRoleRepo := mocks.NewMockRoleRepository(ctrl)
 		mockToken := mocks.NewMockAuthToken(ctrl)
 		mockHasher := mocks.NewMockPasswordHasher(ctrl)
 
-		mockRepo.
+		mockUserRepo.
 			EXPECT().
 			FindUserByEmail("user@example.com").
 			Return(entities.User{}, assert.AnError)
 
 		login := Login{
-			UserRepo: mockRepo,
+			UserRepo: mockUserRepo,
+			RoleRepo: mockRoleRepo,
 			Token:    mockToken,
 			Hasher:   mockHasher,
 		}
@@ -65,8 +72,10 @@ func Test_Login(t *testing.T) {
 
 	t.Run("should return error when password does not match", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
-		mockRepo := mocks.NewMockUserRepository(ctrl)
+		mockUserRepo := mocks.NewMockUserRepository(ctrl)
+		mockRoleRepo := mocks.NewMockRoleRepository(ctrl)
 		mockToken := mocks.NewMockAuthToken(ctrl)
 		mockHasher := mocks.NewMockPasswordHasher(ctrl)
 
@@ -74,9 +83,10 @@ func Test_Login(t *testing.T) {
 			ID:       "user-123",
 			Email:    "user@example.com",
 			Password: "hashed-password",
+			RoleId:   2,
 		}
 
-		mockRepo.
+		mockUserRepo.
 			EXPECT().
 			FindUserByEmail("user@example.com").
 			Return(existingUser, nil)
@@ -87,7 +97,8 @@ func Test_Login(t *testing.T) {
 			Return(assert.AnError)
 
 		login := Login{
-			UserRepo: mockRepo,
+			UserRepo: mockUserRepo,
+			RoleRepo: mockRoleRepo,
 			Token:    mockToken,
 			Hasher:   mockHasher,
 		}
@@ -103,10 +114,12 @@ func Test_Login(t *testing.T) {
 		assert.Empty(t, result)
 	})
 
-	t.Run("should return access token when login is successful", func(t *testing.T) {
+	t.Run("should return error when role is not found", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
 
-		mockRepo := mocks.NewMockUserRepository(ctrl)
+		mockUserRepo := mocks.NewMockUserRepository(ctrl)
+		mockRoleRepo := mocks.NewMockRoleRepository(ctrl)
 		mockToken := mocks.NewMockAuthToken(ctrl)
 		mockHasher := mocks.NewMockPasswordHasher(ctrl)
 
@@ -114,9 +127,10 @@ func Test_Login(t *testing.T) {
 			ID:       "user-123",
 			Email:    "user@example.com",
 			Password: "hashed-password",
+			RoleId:   2,
 		}
 
-		mockRepo.
+		mockUserRepo.
 			EXPECT().
 			FindUserByEmail("user@example.com").
 			Return(existingUser, nil)
@@ -126,13 +140,68 @@ func Test_Login(t *testing.T) {
 			CompareHashPassword("password123", "hashed-password").
 			Return(nil)
 
+		mockRoleRepo.
+			EXPECT().
+			FindRoleById(2).
+			Return("", assert.AnError)
+
+		login := Login{
+			UserRepo: mockUserRepo,
+			RoleRepo: mockRoleRepo,
+			Token:    mockToken,
+			Hasher:   mockHasher,
+		}
+
+		input := entities.Login{
+			Email:    "user@example.com",
+			Password: "password123",
+		}
+
+		result, err := login.Execute(input)
+
+		assert.Error(t, err)
+		assert.Empty(t, result)
+	})
+
+	t.Run("should return access token when login is successful", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockUserRepo := mocks.NewMockUserRepository(ctrl)
+		mockRoleRepo := mocks.NewMockRoleRepository(ctrl)
+		mockToken := mocks.NewMockAuthToken(ctrl)
+		mockHasher := mocks.NewMockPasswordHasher(ctrl)
+
+		existingUser := entities.User{
+			ID:       "user-123",
+			Email:    "user@example.com",
+			Password: "hashed-password",
+			RoleId:   2,
+		}
+
+		mockUserRepo.
+			EXPECT().
+			FindUserByEmail("user@example.com").
+			Return(existingUser, nil)
+
+		mockHasher.
+			EXPECT().
+			CompareHashPassword("password123", "hashed-password").
+			Return(nil)
+
+		mockRoleRepo.
+			EXPECT().
+			FindRoleById(2).
+			Return("student", nil)
+
 		mockToken.
 			EXPECT().
-			GenerateToken("user-123").
+			GenerateToken("user-123", "student").
 			Return("access-token-123", nil)
 
 		login := Login{
-			UserRepo: mockRepo,
+			UserRepo: mockUserRepo,
+			RoleRepo: mockRoleRepo,
 			Token:    mockToken,
 			Hasher:   mockHasher,
 		}

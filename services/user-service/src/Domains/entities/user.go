@@ -11,6 +11,10 @@ func VerifyUser(user User) error {
 		return errors.New("id is required")
 	}
 
+	if user.RoleId == 0 {
+		return errors.New("role id is required")
+	}
+
 	if strings.TrimSpace(user.Email) == "" {
 		return errors.New("email is required")
 	}

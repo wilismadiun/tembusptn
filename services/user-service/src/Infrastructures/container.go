@@ -10,21 +10,23 @@ import (
 )
 
 func Container(db *gorm.DB) *http.Handler {
-	repoImplement := repository.UserRepository{DB: db}
+	userRepoImplement := repository.UserRepository{DB: db}
+	roleRepoImplement := repository.RoleRepository{DB: db}
 	hasherImplement := security.HashPasswordBcrypt{}
 	generatorImplement := generator.GeneratorUUID{}
 	tokenImplement := security.AuthenticationTokenJWT{}
 
 	registerHandler := usecase.Register{
-		Repo:         &repoImplement,
+		Repo:         &userRepoImplement,
 		Generator:    &generatorImplement,
 		HashPassword: &hasherImplement,
 	}
 
 	loginHandler := usecase.Login{
-		UserRepo: &repoImplement,
+		UserRepo: &userRepoImplement,
 		Token:    &tokenImplement,
 		Hasher:   &hasherImplement,
+		RoleRepo: &roleRepoImplement,
 	}
 
 	return &http.Handler{

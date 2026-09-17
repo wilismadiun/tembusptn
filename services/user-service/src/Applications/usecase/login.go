@@ -8,6 +8,7 @@ import (
 
 type Login struct {
 	UserRepo domains.UserRepository
+	RoleRepo domains.RoleRepository
 	Token    security.AuthToken
 	Hasher   security.PasswordHasher
 }
@@ -28,7 +29,12 @@ func (h *Login) Execute(login entities.Login) (string, error) {
 		return "", err
 	}
 
-	accessToken, err := h.Token.GenerateToken(existingUser.ID)
+	role, err := h.RoleRepo.FindRoleById(existingUser.RoleId)
+	if err != nil {
+		return "", err
+	}
+
+	accessToken, err := h.Token.GenerateToken(existingUser.ID, role)
 	if err != nil {
 		return "", err
 	}

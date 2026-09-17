@@ -44,14 +44,14 @@ func Test_register(t *testing.T) {
 		mockGenerator := mocks.NewMockGeneratorId(ctrl)
 		mockHasher := mocks.NewMockPasswordHasher(ctrl)
 
-		expectedErr := errors.New("email already exists")
-
 		mockGenerator.
 			EXPECT().
 			Generator().
 			Return("user-123")
 
-		user := entities.User{
+		existingUser := entities.User{
+			ID:       "existing-user",
+			RoleId:   2,
 			Email:    "test@example.com",
 			Name:     "John",
 			Phone:    "08123456789",
@@ -60,13 +60,61 @@ func Test_register(t *testing.T) {
 
 		mockRepo.
 			EXPECT().
-			FindUserByEmail(gomock.Any()).
-			Return(user, expectedErr)
+			FindUserByEmail("test@example.com").
+			Return(existingUser, nil)
 
 		register := Register{
 			Repo:         mockRepo,
 			Generator:    mockGenerator,
 			HashPassword: mockHasher,
+		}
+
+		user := entities.User{
+			RoleId:   2,
+			Email:    "test@example.com",
+			Name:     "John",
+			Phone:    "08123456789",
+			Password: "password123",
+		}
+
+		result, err := register.Execute(user)
+
+		assert.Error(t, err)
+		assert.Equal(t, "Email is already in use", err.Error())
+		assert.Equal(t, entities.RegisteredUser{}, result)
+	})
+
+	t.Run("should return error when find user returns unexpected error", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+
+		mockRepo := mocks.NewMockUserRepository(ctrl)
+		mockGenerator := mocks.NewMockGeneratorId(ctrl)
+		mockHasher := mocks.NewMockPasswordHasher(ctrl)
+
+		expectedErr := errors.New("database error")
+
+		mockGenerator.
+			EXPECT().
+			Generator().
+			Return("user-123")
+
+		mockRepo.
+			EXPECT().
+			FindUserByEmail("test@example.com").
+			Return(entities.User{}, expectedErr)
+
+		register := Register{
+			Repo:         mockRepo,
+			Generator:    mockGenerator,
+			HashPassword: mockHasher,
+		}
+
+		user := entities.User{
+			RoleId:   2,
+			Email:    "test@example.com",
+			Name:     "John",
+			Phone:    "08123456789",
+			Password: "password123",
 		}
 
 		result, err := register.Execute(user)
@@ -91,7 +139,7 @@ func Test_register(t *testing.T) {
 
 		mockRepo.
 			EXPECT().
-			FindUserByEmail(gomock.Any()).
+			FindUserByEmail("test@example.com").
 			Return(entities.User{}, ErrNotFound)
 
 		mockHasher.
@@ -106,6 +154,7 @@ func Test_register(t *testing.T) {
 		}
 
 		user := entities.User{
+			RoleId:   2,
 			Email:    "test@example.com",
 			Name:     "John",
 			Phone:    "08123456789",
@@ -134,7 +183,7 @@ func Test_register(t *testing.T) {
 
 		mockRepo.
 			EXPECT().
-			FindUserByEmail(gomock.Any()).
+			FindUserByEmail("test@example.com").
 			Return(entities.User{}, ErrNotFound)
 
 		mockHasher.
@@ -154,6 +203,7 @@ func Test_register(t *testing.T) {
 		}
 
 		user := entities.User{
+			RoleId:   2,
 			Email:    "test@example.com",
 			Name:     "John",
 			Phone:    "08123456789",
@@ -180,7 +230,7 @@ func Test_register(t *testing.T) {
 
 		mockRepo.
 			EXPECT().
-			FindUserByEmail(gomock.Any()).
+			FindUserByEmail("test@example.com").
 			Return(entities.User{}, ErrNotFound)
 
 		mockHasher.
@@ -193,6 +243,7 @@ func Test_register(t *testing.T) {
 			UserRegister(gomock.Any()).
 			DoAndReturn(func(user *entities.User) error {
 				assert.Equal(t, "user-123", user.ID)
+				assert.Equal(t, 2, user.RoleId)
 				assert.Equal(t, "test@example.com", user.Email)
 				assert.Equal(t, "John", user.Name)
 				assert.Equal(t, "08123456789", user.Phone)
@@ -208,6 +259,7 @@ func Test_register(t *testing.T) {
 		}
 
 		user := entities.User{
+			RoleId:   2,
 			Email:    "test@example.com",
 			Name:     "John",
 			Phone:    "08123456789",

@@ -10,114 +10,141 @@ func TestVerifyUser(t *testing.T) {
 	tests := []struct {
 		name    string
 		user    User
-		wantErr bool
+		wantErr string
 	}{
 		{
-			name: "valid user",
-			user: User{
-				ID:       "123",
-				Email:    "user@gmail.com",
-				Name:     "John Doe",
-				Phone:    "081234567890",
-				Password: "password123",
-			},
-			wantErr: false,
-		},
-		{
-			name: "empty id",
+			name: "id kosong",
 			user: User{
 				ID:       "",
-				Email:    "user@gmail.com",
-				Name:     "John Doe",
+				RoleId:   2,
+				Email:    "jaya@gmail.com",
+				Name:     "Jaya",
 				Phone:    "081234567890",
 				Password: "password123",
 			},
-			wantErr: true,
+			wantErr: "id is required",
 		},
 		{
-			name: "empty email",
+			name: "email kosong",
 			user: User{
-				ID:       "123",
+				ID:       "user-123",
+				RoleId:   2,
 				Email:    "",
-				Name:     "John Doe",
+				Name:     "Jaya",
 				Phone:    "081234567890",
 				Password: "password123",
 			},
-			wantErr: true,
+			wantErr: "email is required",
 		},
 		{
-			name: "invalid email",
+			name: "format email salah",
 			user: User{
-				ID:       "123",
-				Email:    "user",
-				Name:     "John Doe",
+				ID:       "user-123",
+				RoleId:   2,
+				Email:    "jaya@gmail",
+				Name:     "Jaya",
 				Phone:    "081234567890",
 				Password: "password123",
 			},
-			wantErr: true,
+			wantErr: "invalid email format",
 		},
 		{
-			name: "empty name",
+			name: "name kosong",
 			user: User{
-				ID:       "123",
-				Email:    "user@gmail.com",
+				ID:       "user-123",
+				RoleId:   2,
+				Email:    "jaya@gmail.com",
 				Name:     "",
 				Phone:    "081234567890",
 				Password: "password123",
 			},
-			wantErr: true,
+			wantErr: "name is required",
 		},
 		{
-			name: "empty telephone",
+			name: "telephone kosong",
 			user: User{
-				ID:       "123",
-				Email:    "user@gmail.com",
-				Name:     "John Doe",
+				ID:       "user-123",
+				RoleId:   2,
+				Email:    "jaya@gmail.com",
+				Name:     "Jaya",
 				Phone:    "",
 				Password: "password123",
 			},
-			wantErr: true,
+			wantErr: "telephone is required",
 		},
 		{
-			name: "invalid telephone",
+			name: "telephone tidak sesuai format",
 			user: User{
-				ID:       "123",
-				Email:    "user@gmail.com",
-				Name:     "John Doe",
+				ID:       "user-123",
+				RoleId:   2,
+				Email:    "jaya@gmail.com",
+				Name:     "Jaya",
 				Phone:    "08123abc",
 				Password: "password123",
 			},
-			wantErr: true,
+			wantErr: "telephone must contain 10 to 15 digits",
 		},
 		{
-			name: "empty password",
+			name: "password kosong",
 			user: User{
-				ID:       "123",
-				Email:    "user@gmail.com",
-				Name:     "John Doe",
+				ID:       "user-123",
+				RoleId:   2,
+				Email:    "jaya@gmail.com",
+				Name:     "Jaya",
 				Phone:    "081234567890",
 				Password: "",
 			},
-			wantErr: true,
+			wantErr: "password is required",
 		},
 		{
-			name: "password less than 8 characters",
+			name: "password kurang dari 8 karakter",
 			user: User{
-				ID:       "123",
-				Email:    "user@gmail.com",
-				Name:     "John Doe",
+				ID:       "user-123",
+				RoleId:   2,
+				Email:    "jaya@gmail.com",
+				Name:     "Jaya",
 				Phone:    "081234567890",
 				Password: "1234567",
 			},
-			wantErr: true,
+			wantErr: "password must be at least 8 characters",
+		},
+		{
+			name: "role id kosong atau 0",
+			user: User{
+				ID:       "user-123",
+				RoleId:   0,
+				Email:    "jaya@gmail.com",
+				Name:     "Jaya",
+				Phone:    "081234567890",
+				Password: "password123",
+			},
+			wantErr: "role id is required",
+		},
+		{
+			name: "sukses",
+			user: User{
+				ID:       "user-123",
+				RoleId:   2,
+				Email:    "jaya@gmail.com",
+				Name:     "Jaya",
+				Phone:    "081234567890",
+				Password: "password123",
+			},
+			wantErr: "",
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := VerifyUser(tt.user)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			err := VerifyUser(test.user)
 
-			assert.Equal(t, tt.wantErr, err != nil)
+			if test.wantErr == "" {
+				assert.NoError(t, err)
+				return
+			}
+
+			assert.Error(t, err)
+			assert.Equal(t, test.wantErr, err.Error())
 		})
 	}
 }

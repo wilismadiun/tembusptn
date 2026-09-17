@@ -14,6 +14,7 @@ import (
 )
 
 var repo *UserRepository
+var roleRepo *RoleRepository
 
 func TestMain(m *testing.M) {
 	err := godotenv.Load("../../../.env")
@@ -24,6 +25,10 @@ func TestMain(m *testing.M) {
 	database.ConnectDatabase()
 
 	repo = &UserRepository{
+		DB: database.DB,
+	}
+
+	roleRepo = &RoleRepository{
 		DB: database.DB,
 	}
 
@@ -47,6 +52,7 @@ func TestFindUserByEmail_NotFound(T *testing.T) {
 func TestFindUserByEmail_Found(t *testing.T) {
 	dummyUser := entities.User{
 		ID:       "uuid-123",
+		RoleId:   3,
 		Name:     "Test User",
 		Email:    "test_found@test.com",
 		Password: "hashedpassword",
@@ -72,6 +78,7 @@ func Test_UserRegister(t *testing.T) {
 
 	user := entities.User{
 		ID:       "user-register-123",
+		RoleId:   3,
 		Email:    "jaya@gmail.com",
 		Name:     "Jaya",
 		Phone:    "081234567890",
@@ -100,4 +107,22 @@ func Test_UserRegister(t *testing.T) {
 	t.Logf("User berhasil disimpan: %+v", result)
 
 	database.DB.Exec("DELETE FROM users")
+}
+
+func TestFindRoleByName(t *testing.T) {
+
+	t.Run("should return ErrNotFound when role name is not found", func(t *testing.T) {
+
+		_, err := roleRepo.FindRoleById(4)
+
+		assert.Error(t, err)
+	})
+
+	t.Run("should return nil when role name is found", func(t *testing.T) {
+
+		role, err := roleRepo.FindRoleById(3)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "teacher", role)
+	})
 }

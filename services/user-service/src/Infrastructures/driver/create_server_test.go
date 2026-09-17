@@ -21,6 +21,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Println("Peringatan: Gagal memuat .env dari root, mencoba path alternatif...")
 	}
+
 	database.ConnectDatabase()
 
 	gin.SetMode(gin.TestMode)
@@ -35,6 +36,7 @@ func databaseHelper() {
 
 	user := entities.User{
 		ID:       "user-123",
+		RoleId:   2,
 		Email:    "john@gmail.com",
 		Phone:    "000000000000",
 		Name:     "John",
@@ -42,7 +44,9 @@ func databaseHelper() {
 	}
 
 	err := database.DB.Create(&user).Error
-	log.Printf("Error: %s", err)
+	if err != nil {
+		log.Printf("Error: %s", err)
+	}
 }
 
 func Test_register(t *testing.T) {
@@ -50,10 +54,13 @@ func Test_register(t *testing.T) {
 
 	Router(router, database.DB)
 
-	t.Run("should response 400 when email available", func(t *testing.T) {
+	t.Run("should response 400 when email already exists", func(t *testing.T) {
+		database.DB.Exec("DELETE FROM users")
+
 		databaseHelper()
 
 		body := []byte(`{
+			"roleId": 2,
 			"email": "john@gmail.com",
 			"name": "Jaya",
 			"phone": "081234567890",
@@ -66,28 +73,25 @@ func Test_register(t *testing.T) {
 			bytes.NewBuffer(body),
 		)
 
-		req.Header.Set(
-			"Content-Type",
-			"application/json",
-		)
+		req.Header.Set("Content-Type", "application/json")
 
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
 
-		assert.Equal(
-			t,
-			http.StatusBadRequest,
-			w.Code,
-		)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+
+		database.DB.Exec("DELETE FROM users")
 	})
 
-	t.Run("should response 400 when number of characters is less than 8", func(t *testing.T) {
-		databaseHelper()
+	t.Run("should response 400 when password has less than 8 characters", func(t *testing.T) {
+		database.DB.Exec("DELETE FROM users")
+
 		body := []byte(`{
+			"roleId": 2,
 			"email": "jaya@gmail.com",
 			"name": "Jaya",
-			"telephon": "081234567890",
+			"phone": "081234567890",
 			"password": "1234567"
 		}`)
 
@@ -97,24 +101,22 @@ func Test_register(t *testing.T) {
 			bytes.NewBuffer(body),
 		)
 
-		req.Header.Set(
-			"Content-Type",
-			"application/json",
-		)
+		req.Header.Set("Content-Type", "application/json")
 
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
 
-		assert.Equal(
-			t,
-			http.StatusBadRequest,
-			w.Code,
-		)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+
+		database.DB.Exec("DELETE FROM users")
 	})
 
-	t.Run("Registration successful", func(t *testing.T) {
+	t.Run("should response 400 when role id is empty", func(t *testing.T) {
+		database.DB.Exec("DELETE FROM users")
+
 		body := []byte(`{
+			"roleId": 0,
 			"email": "jaya@gmail.com",
 			"name": "Jaya",
 			"phone": "081234567890",
@@ -127,20 +129,41 @@ func Test_register(t *testing.T) {
 			bytes.NewBuffer(body),
 		)
 
-		req.Header.Set(
-			"Content-Type",
-			"application/json",
-		)
+		req.Header.Set("Content-Type", "application/json")
 
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
 
-		assert.Equal(
-			t,
-			http.StatusCreated,
-			w.Code,
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+
+		database.DB.Exec("DELETE FROM users")
+	})
+
+	t.Run("registration successful", func(t *testing.T) {
+		database.DB.Exec("DELETE FROM users")
+
+		body := []byte(`{
+			"roleId": 2,
+			"email": "jaya@gmail.com",
+			"name": "Jaya",
+			"phone": "081234567890",
+			"password": "12345678"
+		}`)
+
+		req := httptest.NewRequest(
+			http.MethodPost,
+			"/register",
+			bytes.NewBuffer(body),
 		)
+
+		req.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusCreated, w.Code)
 
 		// Check database
 		var user entities.User
@@ -152,36 +175,16 @@ func Test_register(t *testing.T) {
 
 		assert.NoError(t, err)
 
-		assert.Equal(
-			t,
-			"Jaya",
-			user.Name,
-		)
-
-		assert.Equal(
-			t,
-			"jaya@gmail.com",
-			user.Email,
-		)
-
-		assert.Equal(
-			t,
-			"081234567890",
-			user.Phone,
-		)
+		assert.Equal(t, "Jaya", user.Name)
+		assert.Equal(t, "jaya@gmail.com", user.Email)
+		assert.Equal(t, "081234567890", user.Phone)
+		assert.Equal(t, 2, user.RoleId)
 
 		// Password should be hashed
-		assert.NotEqual(
-			t,
-			"12345678",
-			user.Password,
-		)
+		assert.NotEqual(t, "12345678", user.Password)
 
-		// Password should be valid bcrypt hash
-		assert.True(
-			t,
-			len(user.Password) > 0,
-		)
+		// Password should not be empty
+		assert.NotEmpty(t, user.Password)
 
 		// Check response
 		var response map[string]interface{}
@@ -192,14 +195,10 @@ func Test_register(t *testing.T) {
 		)
 
 		assert.NoError(t, err)
+		assert.NotEmpty(t, response)
 
-		assert.NotEmpty(
-			t,
-			response,
-		)
+		database.DB.Exec("DELETE FROM users")
 	})
-
-	database.DB.Exec("DELETE FROM users;")
 }
 
 func Test_login(t *testing.T) {
@@ -208,6 +207,8 @@ func Test_login(t *testing.T) {
 	Router(router, database.DB)
 
 	t.Run("should response 400 when email is empty", func(t *testing.T) {
+		database.DB.Exec("DELETE FROM users")
+
 		body := []byte(`{
 			"email": "",
 			"password": "12345678"
@@ -219,23 +220,18 @@ func Test_login(t *testing.T) {
 			bytes.NewBuffer(body),
 		)
 
-		req.Header.Set(
-			"Content-Type",
-			"application/json",
-		)
+		req.Header.Set("Content-Type", "application/json")
 
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
 
-		assert.Equal(
-			t,
-			http.StatusBadRequest,
-			w.Code,
-		)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 
 	t.Run("should response 400 when email is not registered", func(t *testing.T) {
+		database.DB.Exec("DELETE FROM users")
+
 		body := []byte(`{
 			"email": "notregistered@gmail.com",
 			"password": "12345678"
@@ -247,29 +243,21 @@ func Test_login(t *testing.T) {
 			bytes.NewBuffer(body),
 		)
 
-		req.Header.Set(
-			"Content-Type",
-			"application/json",
-		)
+		req.Header.Set("Content-Type", "application/json")
 
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
 
-		assert.Equal(
-			t,
-			http.StatusBadRequest,
-			w.Code,
-		)
-
-		database.DB.Exec("DELETE FROM users")
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 
 	t.Run("should response 400 when password is incorrect", func(t *testing.T) {
-		databaseHelper()
+		database.DB.Exec("DELETE FROM users")
 
 		// Register user first
 		registerBody := []byte(`{
+			"roleId": 2,
 			"email": "login@gmail.com",
 			"name": "Jaya",
 			"phone": "081234567890",
@@ -291,11 +279,7 @@ func Test_login(t *testing.T) {
 
 		router.ServeHTTP(registerW, registerReq)
 
-		assert.Equal(
-			t,
-			http.StatusCreated,
-			registerW.Code,
-		)
+		assert.Equal(t, http.StatusCreated, registerW.Code)
 
 		// Login with wrong password
 		loginBody := []byte(`{
@@ -318,20 +302,17 @@ func Test_login(t *testing.T) {
 
 		router.ServeHTTP(loginW, loginReq)
 
-		assert.Equal(
-			t,
-			http.StatusBadRequest,
-			loginW.Code,
-		)
+		assert.Equal(t, http.StatusBadRequest, loginW.Code)
 
 		database.DB.Exec("DELETE FROM users")
 	})
 
-	t.Run("Login successful", func(t *testing.T) {
-		databaseHelper()
+	t.Run("login successful", func(t *testing.T) {
+		database.DB.Exec("DELETE FROM users")
 
 		// Register user first
 		registerBody := []byte(`{
+			"roleId": 2,
 			"email": "success@gmail.com",
 			"name": "Jaya",
 			"phone": "081234567890",
@@ -353,11 +334,7 @@ func Test_login(t *testing.T) {
 
 		router.ServeHTTP(registerW, registerReq)
 
-		assert.Equal(
-			t,
-			http.StatusCreated,
-			registerW.Code,
-		)
+		assert.Equal(t, http.StatusCreated, registerW.Code)
 
 		// Login
 		loginBody := []byte(`{
@@ -380,11 +357,7 @@ func Test_login(t *testing.T) {
 
 		router.ServeHTTP(loginW, loginReq)
 
-		assert.Equal(
-			t,
-			http.StatusOK,
-			loginW.Code,
-		)
+		assert.Equal(t, http.StatusOK, loginW.Code)
 
 		// Check response
 		var response map[string]interface{}
@@ -394,15 +367,9 @@ func Test_login(t *testing.T) {
 			&response,
 		)
 
-		assert.NoError(
-			t,
-			err,
-		)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, response)
 
-		assert.NotEmpty(
-			t,
-			response,
-		)
-		database.DB.Exec("DELETE FROM users;")
+		database.DB.Exec("DELETE FROM users")
 	})
 }
