@@ -31,3 +31,14 @@ func (r *SubscriptionRepository) FindSubscriptionByName(name string) error {
 func (r *SubscriptionRepository) CreateSubscriptions(subs *entities.Subscriptions) error {
 	return r.DB.Create(subs).Error
 }
+
+func (r *SubscriptionRepository) GetAllSubscriptions() ([]entities.Subscriptions, error) {
+	var subscriptions []entities.Subscriptions
+
+	err := r.DB.Find(&subscriptions).Error
+	if err != nil {
+		return []entities.Subscriptions{}, err
+	}
+
+	return subscriptions, nil
+}

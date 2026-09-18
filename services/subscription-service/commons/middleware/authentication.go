@@ -3,17 +3,13 @@ package middleware
 import (
 	"net/http"
 	"strings"
+	"subscription-service/src/Domains/entities"
 
 	"github.com/gin-gonic/gin"
 )
 
 type TokenValidator interface {
 	ValidateToken(token string) (string, string, error)
-}
-
-type userContext struct {
-	UserId string
-	Role   string
 }
 
 func AuthenticationAdmin(tokenValidator TokenValidator) gin.HandlerFunc {
@@ -56,17 +52,7 @@ func AuthenticationAdmin(tokenValidator TokenValidator) gin.HandlerFunc {
 			return
 		}
 
-		if role != "admin" {
-			c.AbortWithStatusJSON(
-				http.StatusUnauthorized,
-				gin.H{
-					"message": "Access denied: admin role required",
-				},
-			)
-			return
-		}
-
-		c.Set("user_identify", userContext{
+		c.Set("user_identify", entities.UserContext{
 			UserId: userID,
 			Role:   role,
 		})

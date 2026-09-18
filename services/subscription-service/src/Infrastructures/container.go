@@ -18,7 +18,12 @@ func Container(db *gorm.DB) *http.Handler {
 		Generator: &generatorId,
 	}
 
+	getAllSubscriptionHandler := usecase.GetAllSubscriptions{
+		Repo: &repo,
+	}
+
 	return &http.Handler{
-		AddSubscriptionHandler: &addSubscriptionHandler,
+		AddSubscriptionHandler:    &addSubscriptionHandler,
+		GetAllSubscriptionHandler: &getAllSubscriptionHandler,
 	}
 }

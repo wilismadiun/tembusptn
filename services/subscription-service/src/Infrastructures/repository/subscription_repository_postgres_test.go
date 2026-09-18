@@ -98,3 +98,41 @@ func TestCreateSubscriptions(t *testing.T) {
 		Where("id = ?", subscription.ID).
 		Delete(&entities.Subscriptions{})
 }
+
+func TestGetAllSubscriptions(t *testing.T) {
+	database.DB.Exec("DELETE FROM subscriptions")
+
+	subscriptions := []entities.Subscriptions{
+		{
+			ID:    "subscription-1",
+			Name:  "Gold",
+			Price: 50000,
+		},
+		{
+			ID:    "subscription-2",
+			Name:  "Diamond",
+			Price: 150000,
+		},
+	}
+
+	err := database.DB.Create(&subscriptions).Error
+	assert.NoError(t, err)
+
+	// Execute
+	result, err := repo.GetAllSubscriptions()
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Len(t, result, 2)
+
+	assert.Equal(t, "subscription-1", result[0].ID)
+	assert.Equal(t, "Gold", result[0].Name)
+	assert.Equal(t, int64(50000), result[0].Price)
+
+	assert.Equal(t, "subscription-2", result[1].ID)
+	assert.Equal(t, "Diamond", result[1].Name)
+	assert.Equal(t, int64(150000), result[1].Price)
+
+	// Cleanup
+	database.DB.Exec("DELETE FROM subscriptions")
+}

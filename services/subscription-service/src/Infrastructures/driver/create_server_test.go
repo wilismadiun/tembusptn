@@ -2,6 +2,7 @@ package driver
 
 import (
 	"bytes"
+	"encoding/json"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -45,7 +46,7 @@ func TestAddSubscription(t *testing.T) {
 
 		req := httptest.NewRequest(
 			http.MethodPost,
-			"/api/subscriptions",
+			"/subscriptions",
 			bytes.NewBuffer(body),
 		)
 
@@ -58,7 +59,7 @@ func TestAddSubscription(t *testing.T) {
 		assert.Equal(t, http.StatusUnauthorized, recorder.Code)
 	})
 
-	t.Run("should return 401 when role is not admin", func(t *testing.T) {
+	t.Run("should return 403 when role is not admin", func(t *testing.T) {
 		router := gin.New()
 		Router(router, database.DB)
 
@@ -74,7 +75,7 @@ func TestAddSubscription(t *testing.T) {
 
 		req := httptest.NewRequest(
 			http.MethodPost,
-			"/api/subscriptions",
+			"/subscriptions",
 			bytes.NewBuffer(body),
 		)
 
@@ -85,7 +86,7 @@ func TestAddSubscription(t *testing.T) {
 
 		router.ServeHTTP(recorder, req)
 
-		assert.Equal(t, http.StatusUnauthorized, recorder.Code)
+		assert.Equal(t, http.StatusForbidden, recorder.Code)
 	})
 
 	t.Run("should return 400 when name is empty", func(t *testing.T) {
@@ -104,7 +105,7 @@ func TestAddSubscription(t *testing.T) {
 
 		req := httptest.NewRequest(
 			http.MethodPost,
-			"/api/subscriptions",
+			"/subscriptions",
 			bytes.NewBuffer(body),
 		)
 
@@ -134,7 +135,7 @@ func TestAddSubscription(t *testing.T) {
 
 		req := httptest.NewRequest(
 			http.MethodPost,
-			"/api/subscriptions",
+			"/subscriptions",
 			bytes.NewBuffer(body),
 		)
 
@@ -173,7 +174,7 @@ func TestAddSubscription(t *testing.T) {
 
 		req := httptest.NewRequest(
 			http.MethodPost,
-			"/api/subscriptions",
+			"/subscriptions",
 			bytes.NewBuffer(body),
 		)
 
@@ -207,7 +208,7 @@ func TestAddSubscription(t *testing.T) {
 
 		req := httptest.NewRequest(
 			http.MethodPost,
-			"/api/subscriptions",
+			"/subscriptions",
 			bytes.NewBuffer(body),
 		)
 
@@ -234,5 +235,91 @@ func TestAddSubscription(t *testing.T) {
 		database.DB.
 			Where("name = ?", "Diamond Integration Test").
 			Delete(&entities.Subscriptions{})
+	})
+}
+
+func TestGetAllSubscriptions(t *testing.T) {
+
+	t.Run("should return 200 when data is empty", func(t *testing.T) {
+		database.DB.Exec("DELETE FROM subscriptions")
+
+		router := gin.New()
+		Router(router, database.DB)
+
+		req := httptest.NewRequest(
+			http.MethodGet,
+			"/subscriptions",
+			nil,
+		)
+
+		recorder := httptest.NewRecorder()
+
+		router.ServeHTTP(recorder, req)
+
+		assert.Equal(t, http.StatusOK, recorder.Code)
+		assert.JSONEq(t, `{
+			"message": "Data not found",
+			"data": []
+		}`, recorder.Body.String())
+	})
+
+	t.Run("should return 200 when data exists", func(t *testing.T) {
+		database.DB.Exec("DELETE FROM subscriptions")
+
+		subscriptions := []entities.Subscriptions{
+			{
+				ID:    "subscription-1",
+				Name:  "Gold",
+				Price: 50000,
+			},
+			{
+				ID:    "subscription-2",
+				Name:  "Diamond",
+				Price: 150000,
+			},
+		}
+
+		err := database.DB.Create(&subscriptions).Error
+		require.NoError(t, err)
+
+		router := gin.New()
+		Router(router, database.DB)
+
+		req := httptest.NewRequest(
+			http.MethodGet,
+			"/subscriptions",
+			nil,
+		)
+
+		recorder := httptest.NewRecorder()
+
+		router.ServeHTTP(recorder, req)
+
+		assert.Equal(t, http.StatusOK, recorder.Code)
+
+		var response map[string]interface{}
+
+		err = json.Unmarshal(recorder.Body.Bytes(), &response)
+		assert.NoError(t, err)
+
+		assert.Equal(t, http.StatusOK, recorder.Code)
+
+		assert.JSONEq(t, `{
+		"message": "Success",
+		"data": [
+			{
+				"id": "subscription-1",
+				"name": "Gold",
+				"price": 50000
+			},
+			{
+				"id": "subscription-2",
+				"name": "Diamond",
+				"price": 150000
+			}
+		]
+	}`, recorder.Body.String())
+
+		database.DB.Exec("DELETE FROM subscriptions")
 	})
 }

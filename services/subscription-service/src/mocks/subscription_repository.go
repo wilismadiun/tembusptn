@@ -67,3 +67,18 @@ func (mr *MockSubscriptionRepositoryMockRecorder) FindSubscriptionByName(name an
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindSubscriptionByName", reflect.TypeOf((*MockSubscriptionRepository)(nil).FindSubscriptionByName), name)
 }
+
+// GetAllSubscriptions mocks base method.
+func (m *MockSubscriptionRepository) GetAllSubscriptions() ([]entities.Subscriptions, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAllSubscriptions")
+	ret0, _ := ret[0].([]entities.Subscriptions)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAllSubscriptions indicates an expected call of GetAllSubscriptions.
+func (mr *MockSubscriptionRepositoryMockRecorder) GetAllSubscriptions() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllSubscriptions", reflect.TypeOf((*MockSubscriptionRepository)(nil).GetAllSubscriptions))
+}
