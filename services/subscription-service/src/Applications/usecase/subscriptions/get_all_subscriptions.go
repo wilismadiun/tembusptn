@@ -1,4 +1,4 @@
-package usecase
+package subscriptions
 
 import (
 	domains "subscription-service/src/Domains"

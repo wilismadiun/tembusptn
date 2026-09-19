@@ -2,36 +2,14 @@ package repository
 
 import (
 	"errors"
-	"log"
-	"os"
 	"testing"
 
-	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
 
 	"subscription-service/commons/database"
-	"subscription-service/src/Applications/usecase"
+	"subscription-service/src/Applications/usecase/subscriptions"
 	"subscription-service/src/Domains/entities"
 )
-
-var repo *SubscriptionRepository
-
-func TestMain(m *testing.M) {
-	err := godotenv.Load("../../../.env")
-	if err != nil {
-		log.Println("Peringatan: Gagal memuat .env dari root")
-	}
-
-	database.ConnectDatabase()
-
-	repo = &SubscriptionRepository{
-		DB: database.DB,
-	}
-
-	code := m.Run()
-
-	os.Exit(code)
-}
 
 func TestFindSubscriptionByName(t *testing.T) {
 
@@ -46,7 +24,7 @@ func TestFindSubscriptionByName(t *testing.T) {
 		err := database.DB.Create(&dummySubscription).Error
 		assert.NoError(t, err)
 
-		err = repo.FindSubscriptionByName(dummySubscription.Name)
+		err = subscriptionRepo.FindSubscriptionByName(dummySubscription.Name)
 
 		assert.NoError(t, err)
 
@@ -58,12 +36,12 @@ func TestFindSubscriptionByName(t *testing.T) {
 
 	t.Run("should return ErrNotFound when subscription not found", func(t *testing.T) {
 
-		err := repo.FindSubscriptionByName(
+		err := subscriptionRepo.FindSubscriptionByName(
 			"subscription-yang-pasti-tidak-ada",
 		)
 
 		assert.Error(t, err)
-		assert.True(t, errors.Is(err, usecase.ErrNotFound))
+		assert.True(t, errors.Is(err, subscriptions.ErrNotFound))
 	})
 }
 
@@ -75,7 +53,7 @@ func TestCreateSubscriptions(t *testing.T) {
 		Price: 150000,
 	}
 
-	err := repo.CreateSubscriptions(&subscription)
+	err := subscriptionRepo.CreateSubscriptions(&subscription)
 
 	assert.NoError(t, err)
 
@@ -119,7 +97,7 @@ func TestGetAllSubscriptions(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Execute
-	result, err := repo.GetAllSubscriptions()
+	result, err := subscriptionRepo.GetAllSubscriptions()
 
 	// Assert
 	assert.NoError(t, err)

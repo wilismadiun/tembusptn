@@ -323,3 +323,172 @@ func TestGetAllSubscriptions(t *testing.T) {
 		database.DB.Exec("DELETE FROM subscriptions")
 	})
 }
+
+func TestAddUserSubScripitions(t *testing.T) {
+
+	t.Run("should return 401 when jwt is not provided", func(t *testing.T) {
+		router := gin.New()
+		Router(router, database.DB)
+
+		body := []byte(`{
+			"subscription_id": "subscription-123",
+			"duration_in_days": 30
+		}`)
+
+		req := httptest.NewRequest(
+			http.MethodPost,
+			"/user-subscriptions",
+			bytes.NewBuffer(body),
+		)
+
+		req.Header.Set("Content-Type", "application/json")
+
+		recorder := httptest.NewRecorder()
+
+		router.ServeHTTP(recorder, req)
+
+		assert.Equal(t, http.StatusUnauthorized, recorder.Code)
+	})
+
+	t.Run("should return 400 when subscription id is empty", func(t *testing.T) {
+		router := gin.New()
+		Router(router, database.DB)
+
+		tokenGenerator := security.AuthenticationTokenJWT{}
+
+		token, err := tokenGenerator.GenerateToken("user-123", "admin")
+		require.NoError(t, err)
+
+		body := []byte(`{
+			"subscription_id": "",
+			"duration_in_days": 30
+		}`)
+
+		req := httptest.NewRequest(
+			http.MethodPost,
+			"/user-subscriptions",
+			bytes.NewBuffer(body),
+		)
+
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+
+		recorder := httptest.NewRecorder()
+
+		router.ServeHTTP(recorder, req)
+
+		assert.Equal(t, http.StatusBadRequest, recorder.Code)
+	})
+
+	t.Run("should return 400 when duration is less than or equal to 0", func(t *testing.T) {
+		router := gin.New()
+		Router(router, database.DB)
+
+		tokenGenerator := security.AuthenticationTokenJWT{}
+
+		token, err := tokenGenerator.GenerateToken("user-123", "admin")
+		require.NoError(t, err)
+
+		body := []byte(`{
+			"subscription_id": "subscription-123",
+			"duration_in_days": 0
+		}`)
+
+		req := httptest.NewRequest(
+			http.MethodPost,
+			"/user-subscriptions",
+			bytes.NewBuffer(body),
+		)
+
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+
+		recorder := httptest.NewRecorder()
+
+		router.ServeHTTP(recorder, req)
+
+		assert.Equal(t, http.StatusBadRequest, recorder.Code)
+	})
+
+	t.Run("should return 201 when user subscription successfully created", func(t *testing.T) {
+		router := gin.New()
+		Router(router, database.DB)
+
+		// Data subscription
+		subscription := entities.Subscriptions{
+			ID:    "subscription-123",
+			Name:  "Gold Integration Test",
+			Price: 50000,
+		}
+
+		err := database.DB.
+			Where("id = ?", subscription.ID).
+			FirstOrCreate(&subscription).
+			Error
+
+		require.NoError(t, err)
+
+		defer database.DB.
+			Where("id = ?", subscription.ID).
+			Delete(&entities.Subscriptions{})
+
+		// Generate JWT
+		tokenGenerator := security.AuthenticationTokenJWT{}
+
+		token, err := tokenGenerator.GenerateToken("user-123", "admin")
+		require.NoError(t, err)
+
+		body := []byte(`{
+		"subscription_id": "subscription-123",
+		"duration_in_days": 1
+	}`)
+
+		req := httptest.NewRequest(
+			http.MethodPost,
+			"/user-subscriptions",
+			bytes.NewBuffer(body),
+		)
+
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+
+		recorder := httptest.NewRecorder()
+
+		router.ServeHTTP(recorder, req)
+
+		assert.Equal(t, http.StatusCreated, recorder.Code)
+
+		// Cek data yang masuk ke database
+		var result entities.UserSubscriptions
+
+		err = database.DB.
+			Where(
+				"user_id = ? AND subscription_id = ?",
+				"user-123",
+				"subscription-123",
+			).
+			First(&result).
+			Error
+
+		require.NoError(t, err)
+
+		assert.Equal(t, "user-123", result.UserId)
+		assert.Equal(t, "subscription-123", result.SubscriptionId)
+		assert.Equal(t, entities.StatusActive, result.Status)
+
+		assert.False(t, result.StartAt.IsZero())
+		assert.False(t, result.EndAt.IsZero())
+
+		// duration_in_days = 30
+		assert.Equal(
+			t,
+			result.StartAt.AddDate(0, 0, 30),
+			result.EndAt,
+		)
+
+		// Hapus data user subscription
+		database.DB.
+			Where("id = ?", result.ID).
+			Delete(&entities.UserSubscriptions{})
+	})
+}

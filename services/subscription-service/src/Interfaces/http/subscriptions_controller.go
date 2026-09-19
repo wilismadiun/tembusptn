@@ -2,18 +2,18 @@ package http
 
 import (
 	"net/http"
-	"subscription-service/src/Applications/usecase"
+	"subscription-service/src/Applications/usecase/subscriptions"
 	"subscription-service/src/Domains/entities"
 
 	"github.com/gin-gonic/gin"
 )
 
-type Handler struct {
-	AddSubscriptionHandler    *usecase.AddSubscription
-	GetAllSubscriptionHandler *usecase.GetAllSubscriptions
+type SubscriptionsHandler struct {
+	AddSubscriptionHandler    *subscriptions.AddSubscription
+	GetAllSubscriptionHandler *subscriptions.GetAllSubscriptions
 }
 
-func (h *Handler) AddSubscription(c *gin.Context) {
+func (h *SubscriptionsHandler) AddSubscription(c *gin.Context) {
 	value, exist := c.Get("user_identify")
 	if !exist {
 		c.JSON(http.StatusUnauthorized, gin.H{
@@ -63,7 +63,7 @@ func (h *Handler) AddSubscription(c *gin.Context) {
 	})
 }
 
-func (h *Handler) GetAllSubscriptions(c *gin.Context) {
+func (h *SubscriptionsHandler) GetAllSubscriptions(c *gin.Context) {
 	subscriptions, err := h.GetAllSubscriptionHandler.Execute()
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{

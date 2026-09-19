@@ -3,7 +3,7 @@ package repository
 import (
 	"errors"
 
-	"subscription-service/src/Applications/usecase"
+	"subscription-service/src/Applications/usecase/subscriptions"
 	"subscription-service/src/Domains/entities"
 
 	"gorm.io/gorm"
@@ -19,7 +19,7 @@ func (r *SubscriptionRepository) FindSubscriptionByName(name string) error {
 	err := r.DB.Where("name = ?", name).First(&subs).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return usecase.ErrNotFound
+			return subscriptions.ErrNotFound
 		} else {
 			return err
 		}

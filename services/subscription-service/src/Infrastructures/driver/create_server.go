@@ -13,13 +13,20 @@ func Router(router *gin.Engine, db *gorm.DB) {
 	authValidator := security.AuthenticationTokenJWT{}
 
 	// handler
-	handler := infrastructures.Container(db)
+	subscriptionhandler := infrastructures.SubscriptionsContainer(db)
+	userSubscriptionhandler := infrastructures.UserSubsContsiner(db)
 	authMiddleware := middleware.AuthenticationAdmin(&authValidator)
 
 	// router
-	router.GET("/subscriptions", handler.GetAllSubscriptions)
+	// subscriptions
+	router.GET("/subscriptions", subscriptionhandler.GetAllSubscriptions)
 
-	api := router.Group("/subscriptions")
-	api.Use(authMiddleware)
-	api.POST("", handler.AddSubscription)
+	subscription := router.Group("/subscriptions")
+	subscription.Use(authMiddleware)
+	subscription.POST("", subscriptionhandler.AddSubscription)
+
+	// user subscriptions
+	userSubs := router.Group("/user-subscriptions")
+	userSubs.Use(authMiddleware)
+	userSubs.POST("", userSubscriptionhandler.AddUserSubScripitions)
 }
